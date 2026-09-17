@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-serif-luxury, .font-brand-heading {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+/* Architectural Background Grid Patterns */
+.bg-cadastral-grid {
+  background-size: 36px 36px;
+  background-image: 
+    linear-gradient(to right, rgba(71, 85, 105, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(71, 85, 105, 0.12) 1px, transparent 1px);
+}
+
+.dark .bg-cadastral-grid {
+  background-size: 36px 36px;
+  background-image: 
+    linear-gradient(to right, rgba(59, 130, 246, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.08) 1px, transparent 1px);
+}
+
+.bg-dot-matrix {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(71, 85, 105, 0.22) 1.2px, transparent 1.2px);
+}
+
+.dark .bg-dot-matrix {
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(96, 165, 250, 0.14) 1px, transparent 1px);
+}
+
+/* Ambient Floating Keyframes */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-18px) rotate(3deg) scale(1.05);
+  }
+}
+
+@keyframes floatReverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(16px) rotate(-3deg) scale(0.96);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes shimmerParticle {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translateY(0) scale(0.8);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateY(-10px) scale(1.2);
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 12s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: floatReverse 14s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 8s ease-in-out infinite;
+}
+
+.animate-shimmer-particle {
+  animation: shimmerParticle 6s ease-in-out infinite;
+}
+
+/* Custom smooth scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.45);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
