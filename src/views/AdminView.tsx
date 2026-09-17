@@ -32,10 +32,66 @@ import {
   ArrowUpRight,
   Star
 } from 'lucide-react';
-import { Property, SiteSettings } from '../types';
+import { Property, SiteSettings, PropertyOption, PropertyType, TransactionType, VerificationStatus } from '../types';
 import { api } from '../lib/api';
 import { formatCurrency } from '../lib/whatsapp';
 import { PropertyImageUploader } from '../components/PropertyImageUploader';
+
+const PRESET_FEATURES = [
+  '24/7 Security Patrol & Gatehouse',
+  'Central Solar & Inverter Backup',
+  'Italian Fitted Kitchen + Heat Extractor',
+  'En-Suite Boys\' Quarters (BQ)',
+  'Water Reticulation & Treatment Plant',
+  'Tarred Access Road Network',
+  'Underground Drainage System',
+  'Elevator / Mechanical Lift',
+  'Fiber Optic WiFi Infrastructure',
+  'Smart Home Automation & Intercom',
+  'CCTV Surveillance System',
+  'Electric Perimeter Fencing',
+  'Ample Parking (3+ Vehicles)',
+  'Swimming Pool & Sun Deck',
+  'Fitness Gym & Wellness Club',
+  'Standby Industrial Generator',
+  'Private Rooftop Sit-Out Lounge',
+  'Jacuzzi / Master Soaker Tub',
+  'Children Play Park & Lawn',
+  'Private Cinema / Media Room'
+];
+
+const PRESET_DOCUMENTS = [
+  'Certificate of Occupancy (C of O)',
+  'Right of Occupancy (R of O)',
+  'Deed of Assignment',
+  'Governor\'s Consent',
+  'Survey Plan',
+  'Building Plan Approval',
+  'FHA Allocation',
+  'AGIS Recertification Passed',
+  'Estate Allocation Letter'
+];
+
+const PRESET_TAGS = [
+  'Featured',
+  'AGIS Verified',
+  'High Yield ROI',
+  'Hot Deal',
+  'Off-Plan Discount',
+  'Ready to Move In',
+  'Diplomatic Enclave',
+  'Airport Road Corridor',
+  'Flexible Payment Plan',
+  'Distress Sale'
+];
+
+const PRESET_OPTIONS_TEMPLATES = [
+  { name: 'Carcass / Structural Shell Option', price: 35000000, description: 'Roofing, blockwork & structural framing complete' },
+  { name: 'Semi-Finished Option', price: 48000000, description: 'Plastered walls, electrical piping & windows completed' },
+  { name: 'Fully Finished Option', price: 60000000, description: 'Move-in ready with luxury tiling, sanitary ware & fitted kitchen' },
+  { name: 'Fully Serviced Package', price: 75000000, description: 'Includes inverter backup, AC units & facility management' },
+  { name: 'Serviced Plot / Land Allocation', price: 20000000, description: 'Approved building layout plot with estate infrastructure' }
+];
 
 interface AdminViewProps {
   properties: Property[];
@@ -68,34 +124,54 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [cqlContent, setCqlContent] = useState<string>('');
   const [cqlCopied, setCqlCopied] = useState(false);
   const [isTestingAstra, setIsTestingAstra] = useState(false);
-  const [astraTestResult, setAstraTestResult] = useState<{ connected?: boolean; statusMessage?: string } | null>(null);
+  const [astraTestResult, setAstraTestResult] = useState<any>(null);
   const [isSyncingAstra, setIsSyncingAstra] = useState(false);
-  const [astraSyncResult, setAstraSyncResult] = useState<{ success?: boolean; message?: string; count?: number } | null>(null);
+  const [astraSyncResult, setAstraSyncResult] = useState<any>(null);
 
   // Property Modal (Add / Edit)
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [aiEnhanceLoading, setAiEnhanceLoading] = useState(false);
 
-  // Form states for Property
+  // Comprehensive Form states for Property
   const [formTitle, setFormTitle] = useState('');
   const [formPropertyId, setFormPropertyId] = useState('');
   const [formDistrict, setFormDistrict] = useState('Kyami');
-  const [formLga, setFormLga] = useState('Abuja Municipal');
+  const [formLga, setFormLga] = useState('Abuja Municipal Area Council (AMAC)');
+  const [formState, setFormState] = useState('Federal Capital Territory');
+  const [formEstate, setFormEstate] = useState('ABU Estate Corridor');
+  const [formStreet, setFormStreet] = useState('');
   const [formPrice, setFormPrice] = useState(45000000);
-  const [formPropertyType, setFormPropertyType] = useState('Bungalow');
+  const [formCurrency, setFormCurrency] = useState<'NGN' | 'USD' | 'GBP'>('NGN');
+  const [formPriceLabel, setFormPriceLabel] = useState('Outright Purchase');
+  const [formPropertyType, setFormPropertyType] = useState<any>('Terrace Duplex');
   const [formTransactionType, setFormTransactionType] = useState<any>('Buy');
-  const [formBedrooms, setFormBedrooms] = useState(3);
+  const [formBedrooms, setFormBedrooms] = useState(4);
   const [formBathrooms, setFormBathrooms] = useState(4);
+  const [formToilets, setFormToilets] = useState(5);
+  const [formParkingSpaces, setFormParkingSpaces] = useState(3);
+  const [formFloors, setFormFloors] = useState(2);
+  const [formYearBuilt, setFormYearBuilt] = useState(2026);
   const [formLandSize, setFormLandSize] = useState('400 sqm');
+  const [formBuildingSize, setFormBuildingSize] = useState('320 sqm');
   const [formDescription, setFormDescription] = useState('');
   const [formImagesList, setFormImagesList] = useState<string[]>([]);
   const [formVideoUrl, setFormVideoUrl] = useState('');
-  const [formFeatures, setFormFeatures] = useState('');
-  const [formDocStatus, setFormDocStatus] = useState('Right of Occupancy (R of O), Building Plan Approval');
+  const [formVirtualTourUrl, setFormVirtualTourUrl] = useState('');
+  const [formFloorPlanUrl, setFormFloorPlanUrl] = useState('');
+  const [formBrochureUrl, setFormBrochureUrl] = useState('');
+  const [formFeaturesList, setFormFeaturesList] = useState<string[]>([]);
+  const [formDocStatusList, setFormDocStatusList] = useState<string[]>([]);
+  const [formDocNotes, setFormDocNotes] = useState('');
+  const [formVerificationStatus, setFormVerificationStatus] = useState<VerificationStatus>('Verified');
   const [formFeatured, setFormFeatured] = useState(false);
   const [formStatus, setFormStatus] = useState<any>('Available');
-  const [formDeveloper, setFormDeveloper] = useState('');
+  const [formDeveloper, setFormDeveloper] = useState('Estate Shelters Syndicate');
+  const [formTagsList, setFormTagsList] = useState<string[]>([]);
+  const [formOptionsList, setFormOptionsList] = useState<PropertyOption[]>([]);
+  const [formCustomFeatureInput, setFormCustomFeatureInput] = useState('');
+  const [formCustomDocInput, setFormCustomDocInput] = useState('');
+  const [formCustomTagInput, setFormCustomTagInput] = useState('');
 
   // Settings form
   const [tempSettings, setTempSettings] = useState<SiteSettings>(settings);
@@ -150,7 +226,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
       localStorage.setItem('estateshelters_admin_auth', 'true');
       setAuthError('');
     } else {
-      setAuthError('Invalid administrator credentials. (Hint: enter "Estateshelters@1")');
+      setAuthError('Invalid administrator credentials. Please contact IT support if you require access.');
     }
   };
 
@@ -161,88 +237,205 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
   const openAddPropertyModal = () => {
     setEditingProperty(null);
+    const count = properties.length + 1;
     setFormTitle('');
     setFormPropertyId(`ES-${Math.floor(Math.random() * 90000 + 10000)}`);
     setFormDistrict('Kyami');
-    setFormLga('Abuja Municipal');
-    setFormPrice(35000000);
-    setFormPropertyType('Bungalow');
+    setFormLga('Abuja Municipal Area Council (AMAC)');
+    setFormState('Federal Capital Territory');
+    setFormEstate('ABU Estate Corridor');
+    setFormStreet('');
+    setFormPrice(45000000);
+    setFormCurrency('NGN');
+    setFormPriceLabel('Outright Purchase');
+    setFormPropertyType('Terrace Duplex');
     setFormTransactionType('Buy');
-    setFormBedrooms(3);
-    setFormBathrooms(3);
+    setFormBedrooms(4);
+    setFormBathrooms(4);
+    setFormToilets(5);
+    setFormParkingSpaces(3);
+    setFormFloors(2);
+    setFormYearBuilt(2026);
     setFormLandSize('400 sqm');
-    setFormDescription('Contemporary residential unit with verified cadastral title in Abuja.');
+    setFormBuildingSize('320 sqm');
+    setFormDescription('An elegantly finished luxury property offering contemporary living in a serene, master-planned Abuja enclave with verified cadastral title.');
     setFormImagesList([
       'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=80',
       'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&auto=format&fit=crop&q=80',
       'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&auto=format&fit=crop&q=80'
     ]);
     setFormVideoUrl('');
-    setFormFeatures('24/7 Security, Paved Access Roads, Dedicated Transformer, Treated Water Scheme');
-    setFormDocStatus('FCDA Right of Occupancy (R of O), AGIS Beacon Clearance');
-    setFormFeatured(false);
+    setFormVirtualTourUrl('');
+    setFormFloorPlanUrl('');
+    setFormBrochureUrl('');
+    setFormFeaturesList([
+      '24/7 Security Patrol & Gatehouse',
+      'Central Solar & Inverter Backup',
+      'Italian Fitted Kitchen + Heat Extractor',
+      'En-Suite Boys\' Quarters (BQ)',
+      'Water Reticulation & Treatment Plant',
+      'Tarred Access Road Network'
+    ]);
+    setFormDocStatusList([
+      'Right of Occupancy (R of O)',
+      'Building Plan Approval',
+      'AGIS Recertification Passed'
+    ]);
+    setFormDocNotes('Verified AGIS allocation with clear FCDA layout clearance and beacon certificate.');
+    setFormVerificationStatus('Verified');
+    setFormFeatured(true);
     setFormStatus('Available');
-    setFormDeveloper('Estate Shelters Development Syndicate');
+    setFormDeveloper('Estate Shelters Syndicate');
+    setFormTagsList(['Featured', 'AGIS Verified', 'Hot Deal']);
+    setFormOptionsList([
+      { name: 'Carcass / Structural Shell Option', price: 35000000, description: 'Roofing, masonry & structural framing complete' },
+      { name: 'Fully Finished & Serviced Option', price: 55000000, description: 'Move-in ready with luxury tiling, sanitary ware & fitted kitchen' }
+    ]);
     setIsModalOpen(true);
   };
 
   const openEditPropertyModal = (p: Property) => {
     setEditingProperty(p);
-    setFormTitle(p.title);
-    setFormPropertyId(p.property_id);
-    setFormDistrict(p.district);
-    setFormLga(p.lga);
-    setFormPrice(p.price);
-    setFormPropertyType(p.property_type);
-    setFormTransactionType(p.transaction_type);
-    setFormBedrooms(p.bedrooms);
-    setFormBathrooms(p.bathrooms);
+    setFormTitle(p.title || '');
+    setFormPropertyId(p.property_id || '');
+    setFormDistrict(p.district || 'Kyami');
+    setFormLga(p.lga || 'Abuja Municipal Area Council (AMAC)');
+    setFormState(p.state || 'Federal Capital Territory');
+    setFormEstate(p.estate || '');
+    setFormStreet(p.street || '');
+    setFormPrice(p.price || 0);
+    setFormCurrency(p.currency || 'NGN');
+    setFormPriceLabel(p.price_label || 'Outright Purchase');
+    setFormPropertyType(p.property_type || 'Terrace Duplex');
+    setFormTransactionType(p.transaction_type || 'Buy');
+    setFormBedrooms(p.bedrooms || 0);
+    setFormBathrooms(p.bathrooms || 0);
+    setFormToilets(p.toilets || p.bathrooms || 0);
+    setFormParkingSpaces(p.parking_spaces || 3);
+    setFormFloors(p.floors || 2);
+    setFormYearBuilt(p.year_built || 2026);
     setFormLandSize(p.land_size || '400 sqm');
-    setFormDescription(p.description);
+    setFormBuildingSize(p.building_size || '320 sqm');
+    setFormDescription(p.description || '');
     setFormImagesList(p.images && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=80']);
     setFormVideoUrl(p.video_url || '');
-    setFormFeatures(p.features.join(', '));
-    setFormDocStatus(p.documentation_status.join(', '));
-    setFormFeatured(p.featured);
-    setFormStatus(p.status);
+    setFormVirtualTourUrl(p.virtual_tour_url || '');
+    setFormFloorPlanUrl(p.floor_plan_url || '');
+    setFormBrochureUrl(p.brochure_url || '');
+    setFormFeaturesList(p.features || []);
+    setFormDocStatusList(p.documentation_status || []);
+    setFormDocNotes(p.documentation_notes || '');
+    setFormVerificationStatus(p.verification_status || 'Verified');
+    setFormFeatured(Boolean(p.featured));
+    setFormStatus(p.status || 'Available');
     setFormDeveloper(p.developer_name || '');
+    setFormTagsList(p.tags || []);
+    setFormOptionsList(p.options || []);
     setIsModalOpen(true);
+  };
+
+  const toggleFeature = (feat: string) => {
+    setFormFeaturesList(prev =>
+      prev.includes(feat) ? prev.filter(f => f !== feat) : [...prev, feat]
+    );
+  };
+
+  const toggleDoc = (doc: string) => {
+    setFormDocStatusList(prev =>
+      prev.includes(doc) ? prev.filter(d => d !== doc) : [...prev, doc]
+    );
+  };
+
+  const toggleTag = (tag: string) => {
+    setFormTagsList(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const addCustomFeature = () => {
+    const val = formCustomFeatureInput.trim();
+    if (val && !formFeaturesList.includes(val)) {
+      setFormFeaturesList([...formFeaturesList, val]);
+      setFormCustomFeatureInput('');
+    }
+  };
+
+  const addCustomDoc = () => {
+    const val = formCustomDocInput.trim();
+    if (val && !formDocStatusList.includes(val)) {
+      setFormDocStatusList([...formDocStatusList, val]);
+      setFormCustomDocInput('');
+    }
+  };
+
+  const addCustomTag = () => {
+    const val = formCustomTagInput.trim();
+    if (val && !formTagsList.includes(val)) {
+      setFormTagsList([...formTagsList, val]);
+      setFormCustomTagInput('');
+    }
+  };
+
+  const addOption = (opt: PropertyOption) => {
+    setFormOptionsList([...formOptionsList, opt]);
+  };
+
+  const removeOption = (index: number) => {
+    setFormOptionsList(formOptionsList.filter((_, i) => i !== index));
+  };
+
+  const updateOption = (index: number, field: keyof PropertyOption, value: any) => {
+    const updated = [...formOptionsList];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormOptionsList(updated);
   };
 
   const handleSaveProperty = async (e: React.FormEvent) => {
     e.preventDefault();
-    const featuresArray = formFeatures.split(',').map(s => s.trim()).filter(Boolean);
-    const docArray = formDocStatus.split(',').map(s => s.trim()).filter(Boolean);
     const slug = formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-
     const imagesToSave = formImagesList.slice(0, 8);
     const primaryCoverImage = imagesToSave[0] || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop&q=80';
 
-    const propertyPayload: any = {
+    const propertyPayload: Partial<Property> = {
       property_id: formPropertyId,
       title: formTitle,
       slug: slug || 'estate-shelters-property',
       price: Number(formPrice),
-      currency: 'NGN',
-      price_label: 'Current Asking Price',
-      district: formDistrict,
-      location: `${formDistrict}, Abuja`,
+      currency: formCurrency,
+      price_label: formPriceLabel,
+      options: formOptionsList,
+      country: 'Nigeria',
+      state: formState,
       lga: formLga,
-      property_type: formPropertyType,
-      transaction_type: formTransactionType,
+      district: formDistrict,
+      location: `${formDistrict}, ${formState}`,
+      estate: formEstate,
+      street: formStreet,
+      property_type: formPropertyType as PropertyType,
+      transaction_type: formTransactionType as TransactionType,
       bedrooms: Number(formBedrooms),
       bathrooms: Number(formBathrooms),
+      toilets: Number(formToilets),
+      parking_spaces: Number(formParkingSpaces),
+      floors: Number(formFloors),
+      year_built: Number(formYearBuilt),
       land_size: formLandSize,
+      building_size: formBuildingSize,
       description: formDescription,
-      features: featuresArray,
-      images: imagesToSave.length > 0 ? imagesToSave : [primaryCoverImage],
-      display_image: primaryCoverImage,
-      video_url: formVideoUrl,
-      documentation_status: docArray,
-      verification_status: 'Verified',
+      features: formFeaturesList,
+      documentation_status: formDocStatusList,
+      documentation_notes: formDocNotes,
+      verification_status: formVerificationStatus,
       status: formStatus,
       featured: formFeatured,
-      developer_name: formDeveloper || 'Estate Shelters Syndicate'
+      developer_name: formDeveloper || 'Estate Shelters Syndicate',
+      tags: formTagsList,
+      images: imagesToSave.length > 0 ? imagesToSave : [primaryCoverImage],
+      video_url: formVideoUrl,
+      virtual_tour_url: formVirtualTourUrl,
+      floor_plan_url: formFloorPlanUrl,
+      brochure_url: formBrochureUrl,
+      published: true
     };
 
     try {
@@ -278,13 +471,13 @@ export const AdminView: React.FC<AdminViewProps> = ({
         district: formDistrict,
         property_type: formPropertyType,
         price: formPrice,
-        key_features: formFeatures.split(',').map(s => s.trim()).filter(Boolean),
+        key_features: formFeaturesList,
         raw_notes: formDescription
       });
 
       if (res.title) setFormTitle(res.title);
       if (res.marketing_description) setFormDescription(res.marketing_description);
-      if (res.features && res.features.length > 0) setFormFeatures(res.features.join(', '));
+      if (res.features && res.features.length > 0) setFormFeaturesList(res.features);
       if (res.tagline) alert(`AI Enhanced Tagline: ${res.tagline}`);
     } catch (e) {
       console.error(e);
@@ -373,10 +566,6 @@ export const AdminView: React.FC<AdminViewProps> = ({
               Authenticate Portal Access
             </button>
           </form>
-
-          <p className="text-[11px] text-slate-400">
-            Passcode: <code>Estateshelters@1</code>
-          </p>
         </div>
       </div>
     );
@@ -929,111 +1118,510 @@ export const AdminView: React.FC<AdminViewProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSaveProperty} className="space-y-5 text-xs">
+            <form onSubmit={handleSaveProperty} className="space-y-6 text-xs">
               
-              {/* Basic Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="font-semibold block mb-1">Property Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
-                    placeholder="e.g. 4-Bedroom Terrace Duplex"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                  />
+              {/* SECTION 1: BASIC INFO & PRICING */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-4">
+                <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-bold text-sm">
+                  <Building2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>1. Basic Property Information & Pricing</span>
                 </div>
 
-                <div>
-                  <label className="font-semibold block mb-1">Reference ID</label>
-                  <input
-                    type="text"
-                    value={formPropertyId}
-                    onChange={(e) => setFormPropertyId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Property Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      placeholder="e.g. 4-Bedroom Terrace Duplex with BQ"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Reference Property ID *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formPropertyId}
+                      onChange={(e) => setFormPropertyId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Transaction Type</label>
+                    <select
+                      value={formTransactionType}
+                      onChange={(e) => setFormTransactionType(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                      <option value="Buy">Outright Buy</option>
+                      <option value="Rent">Rent</option>
+                      <option value="Lease">Lease</option>
+                      <option value="Land">Land / Plot Sale</option>
+                      <option value="Investment">Investment Opportunity</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Property Typology</label>
+                    <select
+                      value={formPropertyType}
+                      onChange={(e) => setFormPropertyType(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                      <option value="Terrace Duplex">Terrace Duplex</option>
+                      <option value="Detached Duplex">Detached Duplex</option>
+                      <option value="Semi-Detached House">Semi-Detached House</option>
+                      <option value="Bungalow">Detached Bungalow</option>
+                      <option value="Apartment">Luxury Apartment</option>
+                      <option value="Mansion">Luxury Mansion</option>
+                      <option value="Penthouse">Penthouse</option>
+                      <option value="Villa">Executive Villa</option>
+                      <option value="Land">Serviced Plot / Land</option>
+                      <option value="Commercial Property">Commercial Property</option>
+                      <option value="Office Space">Office Space</option>
+                      <option value="Warehouse">Warehouse / Industrial</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Currency</label>
+                    <select
+                      value={formCurrency}
+                      onChange={(e: any) => setFormCurrency(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                      <option value="NGN">NGN (₦ - Nigerian Naira)</option>
+                      <option value="USD">USD ($ - US Dollar)</option>
+                      <option value="GBP">GBP (£ - British Pound)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Asking Price *</label>
+                    <input
+                      type="number"
+                      required
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-mono font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Price Label / Option Phrasing</label>
+                    <input
+                      type="text"
+                      value={formPriceLabel}
+                      onChange={(e) => setFormPriceLabel(e.target.value)}
+                      placeholder="e.g. Outright Purchase, Carcass Option, Per Annum"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* District, Price & Typology */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* SECTION 2: STRUCTURAL CONFIGURATIONS & FINISHING OPTIONS */}
+              <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-800/60 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center space-x-2 text-blue-900 dark:text-blue-200 font-bold text-sm">
+                      <Layers className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <span>2. Available Structural Configurations & Finishing Options</span>
+                    </div>
+                    <p className="text-[11px] text-blue-700 dark:text-blue-300 mt-0.5">
+                      Add custom finishing packages (e.g., Carcass, Semi-Finished, Fully Serviced) so buyers can choose structural options.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Preset Option Buttons */}
                 <div>
-                  <label className="font-semibold block mb-1">District *</label>
+                  <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 block mb-1.5">
+                    Click to add standard finishing option templates:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PRESET_OPTIONS_TEMPLATES.map((tmpl, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => addOption(tmpl)}
+                        className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[11px] font-medium flex items-center space-x-1 transition-colors"
+                      >
+                        <Plus className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                        <span>{tmpl.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Option List */}
+                {formOptionsList.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    {formOptionsList.map((opt, idx) => (
+                      <div key={idx} className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                        <div className="sm:col-span-5">
+                          <input
+                            type="text"
+                            value={opt.name}
+                            onChange={(e) => updateOption(idx, 'name', e.target.value)}
+                            placeholder="Option Name (e.g., Fully Finished)"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-semibold"
+                          />
+                        </div>
+                        <div className="sm:col-span-3">
+                          <input
+                            type="number"
+                            value={opt.price}
+                            onChange={(e) => updateOption(idx, 'price', Number(e.target.value))}
+                            placeholder="Price (NGN)"
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 font-mono font-bold"
+                          />
+                        </div>
+                        <div className="sm:col-span-3">
+                          <input
+                            type="text"
+                            value={opt.description || ''}
+                            onChange={(e) => updateOption(idx, 'description', e.target.value)}
+                            placeholder="Option details..."
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[11px]"
+                          />
+                        </div>
+                        <div className="sm:col-span-1 flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => removeOption(idx)}
+                            className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 3: LOCATION & ENCLAVE */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-bold text-sm">
+                  <Server className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>3. Location & Enclave Cadastral Address</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">State / Territory</label>
+                    <input
+                      type="text"
+                      value={formState}
+                      onChange={(e) => setFormState(e.target.value)}
+                      placeholder="e.g. Federal Capital Territory"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">LGA / Area Council</label>
+                    <input
+                      type="text"
+                      value={formLga}
+                      onChange={(e) => setFormLga(e.target.value)}
+                      placeholder="e.g. Abuja Municipal Area Council (AMAC)"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">District / Corridor *</label>
+                    <input
+                      type="text"
+                      required
+                      value={formDistrict}
+                      onChange={(e) => setFormDistrict(e.target.value)}
+                      placeholder="e.g. Kyami, Apo Dutse, Maitama, Guzape"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Estate / Residential Enclave Name</label>
+                    <input
+                      type="text"
+                      value={formEstate}
+                      onChange={(e) => setFormEstate(e.target.value)}
+                      placeholder="e.g. ABU Estate, Dutse Hills Court"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Street Address / Cadastral Plot</label>
+                    <input
+                      type="text"
+                      value={formStreet}
+                      onChange={(e) => setFormStreet(e.target.value)}
+                      placeholder="e.g. Plot 418, Apo Dutse Boulevard"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 4: SPECIFICATIONS & MEASUREMENTS */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-bold text-sm">
+                  <HardDrive className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <span>4. Architectural Specifications & Dimensions</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Bedrooms</label>
+                    <input
+                      type="number"
+                      value={formBedrooms}
+                      onChange={(e) => setFormBedrooms(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Bathrooms</label>
+                    <input
+                      type="number"
+                      value={formBathrooms}
+                      onChange={(e) => setFormBathrooms(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Toilets</label>
+                    <input
+                      type="number"
+                      value={formToilets}
+                      onChange={(e) => setFormToilets(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Parking Spaces</label>
+                    <input
+                      type="number"
+                      value={formParkingSpaces}
+                      onChange={(e) => setFormParkingSpaces(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Floors / Storeys</label>
+                    <input
+                      type="number"
+                      value={formFloors}
+                      onChange={(e) => setFormFloors(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Year Built / Completion</label>
+                    <input
+                      type="number"
+                      value={formYearBuilt}
+                      onChange={(e) => setFormYearBuilt(Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Land Size</label>
+                    <input
+                      type="text"
+                      value={formLandSize}
+                      onChange={(e) => setFormLandSize(e.target.value)}
+                      placeholder="e.g. 400 sqm, 1 Plot"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Building Floor Area</label>
+                    <input
+                      type="text"
+                      value={formBuildingSize}
+                      onChange={(e) => setFormBuildingSize(e.target.value)}
+                      placeholder="e.g. 320 sqm"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 5: PROPERTY FEATURES & AMENITIES */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-bold text-sm">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>5. Property Features & Luxury Estate Amenities</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {formFeaturesList.length} Selected
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Click any feature chip to toggle selection, or type custom features below:
+                </p>
+
+                {/* Preset Feature Chips */}
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1">
+                  {PRESET_FEATURES.map((feat, idx) => {
+                    const selected = formFeaturesList.includes(feat);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => toggleFeature(feat)}
+                        className={`px-3 py-1.5 rounded-xl text-[11px] font-medium flex items-center space-x-1.5 transition-all ${
+                          selected
+                            ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {selected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                        <span>{feat}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom Feature Input */}
+                <div className="flex items-center space-x-2 pt-1">
                   <input
                     type="text"
-                    required
-                    value={formDistrict}
-                    onChange={(e) => setFormDistrict(e.target.value)}
-                    placeholder="e.g. Kyami, Apo Dutse, Maitama"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    value={formCustomFeatureInput}
+                    onChange={(e) => setFormCustomFeatureInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomFeature();
+                      }
+                    }}
+                    placeholder="Add custom feature (e.g. Smart Intercom System)..."
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
-                </div>
-
-                <div>
-                  <label className="font-semibold block mb-1">Price (NGN) *</label>
-                  <input
-                    type="number"
-                    required
-                    value={formPrice}
-                    onChange={(e) => setFormPrice(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-semibold block mb-1">Property Typology</label>
-                  <select
-                    value={formPropertyType}
-                    onChange={(e) => setFormPropertyType(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  <button
+                    type="button"
+                    onClick={addCustomFeature}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-semibold shrink-0"
                   >
-                    <option value="Bungalow">Detached Bungalow</option>
-                    <option value="Terrace Duplex">Terrace Duplex</option>
-                    <option value="Detached Duplex">Detached Duplex</option>
-                    <option value="Apartment">Apartment</option>
-                    <option value="Mansion">Luxury Mansion</option>
-                    <option value="Land">Serviced Plot / Land</option>
-                  </select>
+                    + Add Feature
+                  </button>
                 </div>
               </div>
 
-              {/* Bedrooms, Bathrooms, Land Size */}
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="font-semibold block mb-1">Bedrooms</label>
-                  <input
-                    type="number"
-                    value={formBedrooms}
-                    onChange={(e) => setFormBedrooms(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                  />
+              {/* SECTION 6: TITLE, DOCUMENTATION & VERIFICATION */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-bold text-sm">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>6. Cadastral Title, Documentation & Verification</span>
                 </div>
 
-                <div>
-                  <label className="font-semibold block mb-1">Bathrooms</label>
-                  <input
-                    type="number"
-                    value={formBathrooms}
-                    onChange={(e) => setFormBathrooms(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                  />
+                {/* Preset Documentation Chips */}
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_DOCUMENTS.map((doc, idx) => {
+                    const selected = formDocStatusList.includes(doc);
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => toggleDoc(doc)}
+                        className={`px-3 py-1.5 rounded-xl text-[11px] font-medium flex items-center space-x-1.5 transition-all ${
+                          selected
+                            ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        {selected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                        <span>{doc}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div>
-                  <label className="font-semibold block mb-1">Land Size</label>
+                {/* Custom Doc Input */}
+                <div className="flex items-center space-x-2">
                   <input
                     type="text"
-                    value={formLandSize}
-                    onChange={(e) => setFormLandSize(e.target.value)}
-                    placeholder="e.g. 400 sqm"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                    value={formCustomDocInput}
+                    onChange={(e) => setFormCustomDocInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addCustomDoc();
+                      }
+                    }}
+                    placeholder="Add custom title document..."
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
+                  <button
+                    type="button"
+                    onClick={addCustomDoc}
+                    className="px-3 py-1.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-semibold shrink-0"
+                  >
+                    + Add Title
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="font-semibold block mb-1">Verification Status</label>
+                    <select
+                      value={formVerificationStatus}
+                      onChange={(e: any) => setFormVerificationStatus(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold"
+                    >
+                      <option value="Verified">Verified Title (AGIS Clear)</option>
+                      <option value="Under Review">Under Review</option>
+                      <option value="Documentation Pending">Documentation Pending</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="font-semibold block mb-1">Verification / Cadastral Title Notes</label>
+                    <input
+                      type="text"
+                      value={formDocNotes}
+                      onChange={(e) => setFormDocNotes(e.target.value)}
+                      placeholder="e.g. Clear Certificate of Occupancy registered with AGIS (Abuja Geographic Info System)"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* MULTI-IMAGE UPLOADER & DISPLAY COVER SELECTOR */}
-              <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 space-y-3">
+              {/* SECTION 7: MULTI-IMAGE UPLOADER & MEDIA URLS */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-bold text-sm">
+                  <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>7. Gallery Photos, Video Tour & Media Assets</span>
+                </div>
+
                 <PropertyImageUploader
                   images={formImagesList}
                   onChange={setFormImagesList}
@@ -1041,84 +1629,174 @@ export const AdminView: React.FC<AdminViewProps> = ({
                   onVideoUrlChange={setFormVideoUrl}
                   maxImages={8}
                 />
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div>
+                    <label className="font-semibold block mb-1">3D Virtual Tour Link</label>
+                    <input
+                      type="url"
+                      value={formVirtualTourUrl}
+                      onChange={(e) => setFormVirtualTourUrl(e.target.value)}
+                      placeholder="https://my.matterport.com/show/..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">Floor Plan Diagram Link</label>
+                    <input
+                      type="url"
+                      value={formFloorPlanUrl}
+                      onChange={(e) => setFormFloorPlanUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-semibold block mb-1">PDF Brochure Link</label>
+                    <input
+                      type="url"
+                      value={formBrochureUrl}
+                      onChange={(e) => setFormBrochureUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Marketing Description */}
+              {/* SECTION 8: MARKETING DESCRIPTION */}
               <div>
-                <label className="font-semibold block mb-1">Marketing Description</label>
+                <label className="font-semibold block mb-1">Comprehensive Marketing Description *</label>
                 <textarea
                   rows={4}
+                  required
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  placeholder="Provide an engaging description highlighting the architecture, estate infrastructure, accessibility, title status, and investment yield..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white leading-relaxed"
                 />
               </div>
 
-              {/* Features */}
-              <div>
-                <label className="font-semibold block mb-1">Features (Comma separated)</label>
-                <input
-                  type="text"
-                  value={formFeatures}
-                  onChange={(e) => setFormFeatures(e.target.value)}
-                  placeholder="24/7 Security, Paved Roads, Solar Hybrid"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                />
-              </div>
+              {/* SECTION 9: TAGS, DEVELOPER & LISTING STATUS */}
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+                <div className="flex items-center space-x-2 text-slate-800 dark:text-slate-200 font-bold text-sm">
+                  <Star className="w-4 h-4 text-amber-500" />
+                  <span>9. Tags, Developer & Availability Status</span>
+                </div>
 
-              {/* Documentation */}
-              <div>
-                <label className="font-semibold block mb-1">Title & Documentation (Comma separated)</label>
-                <input
-                  type="text"
-                  value={formDocStatus}
-                  onChange={(e) => setFormDocStatus(e.target.value)}
-                  placeholder="Right of Occupancy, Building Plan Approval"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
-                />
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="font-semibold block mb-1">Developer / Syndicate Name</label>
+                    <input
+                      type="text"
+                      value={formDeveloper}
+                      onChange={(e) => setFormDeveloper(e.target.value)}
+                      placeholder="e.g. Estate Shelters Syndicate"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
 
-              {/* Featured & Status */}
-              <div className="flex items-center space-x-6 pt-2">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formFeatured}
-                    onChange={(e) => setFormFeatured(e.target.checked)}
-                    className="rounded text-blue-600"
-                  />
-                  <span>Featured Listing</span>
-                </label>
+                  <div>
+                    <label className="font-semibold block mb-1">Listing Status</label>
+                    <select
+                      value={formStatus}
+                      onChange={(e: any) => setFormStatus(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-semibold"
+                    >
+                      <option value="Available">Available</option>
+                      <option value="Reserved">Reserved</option>
+                      <option value="Under Offer">Under Offer</option>
+                      <option value="Sold">Sold</option>
+                      <option value="Rented">Rented</option>
+                    </select>
+                  </div>
 
-                <div className="flex items-center space-x-2">
-                  <span className="font-semibold">Status:</span>
-                  <select
-                    value={formStatus}
-                    onChange={(e: any) => setFormStatus(e.target.value)}
-                    className="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                  >
-                    <option value="Available">Available</option>
-                    <option value="Sold">Sold</option>
-                    <option value="Under Offer">Under Offer</option>
-                  </select>
+                  <div className="flex items-center pt-5">
+                    <label className="flex items-center space-x-2 cursor-pointer p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 w-full">
+                      <input
+                        type="checkbox"
+                        checked={formFeatured}
+                        onChange={(e) => setFormFeatured(e.target.checked)}
+                        className="rounded text-blue-600 w-4 h-4"
+                      />
+                      <span className="font-semibold text-slate-900 dark:text-white">Pin to Featured Properties Showcase</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Tag Chips */}
+                <div>
+                  <span className="font-semibold block mb-1">Property Badges & Marketing Tags:</span>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {PRESET_TAGS.map((tag, idx) => {
+                      const selected = formTagsList.includes(tag);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => toggleTag(tag)}
+                          className={`px-3 py-1 rounded-lg text-[11px] font-medium flex items-center space-x-1.5 transition-all ${
+                            selected
+                              ? 'bg-amber-500 text-white shadow-xs font-semibold'
+                              : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {selected ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3 h-3 text-slate-400" />}
+                          <span>{tag}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={formCustomTagInput}
+                      onChange={(e) => setFormCustomTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addCustomTag();
+                        }
+                      }}
+                      placeholder="Add custom marketing tag..."
+                      className="flex-1 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                    <button
+                      type="button"
+                      onClick={addCustomTag}
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-semibold shrink-0"
+                    >
+                      + Add Tag
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Submit Buttons */}
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md transition-colors"
-                >
-                  Save Property
-                </button>
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-[11px] text-slate-400">
+                  Data will be instantly synced to persistent local store & Astra DB.
+                </span>
+
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-7 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md transition-colors flex items-center space-x-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{editingProperty ? 'Save Property Updates' : 'Publish Property Listing'}</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>
