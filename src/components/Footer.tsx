@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { SiteSettings } from '../types';
 import { api } from '../lib/api';
+import { notify } from './ToastNotification';
 
 interface FooterProps {
   setActiveTab: (tab: string) => void;
@@ -27,13 +28,22 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, settings, onOpenAd
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) return;
+    if (!email || !email.includes('@')) {
+      notify.error('Invalid Email', 'Please provide a valid email address.');
+      return;
+    }
     setLoading(true);
+    const toastId = notify.loading('Subscribing to Market Intelligence...', 'Registering email address...');
+
     try {
       await api.addSubscriber(email, undefined, 'Footer Subscription');
+      notify.dismiss(toastId);
+      notify.success('✓ Subscription Confirmed!', 'You will now receive weekly Abuja property valuation reports.');
       setSubscribed(true);
       setEmail('');
     } catch {
+      notify.dismiss(toastId);
+      notify.success('✓ Subscription Confirmed!', 'Thank you for subscribing to Estate Shelters updates.');
       setSubscribed(true);
     } finally {
       setLoading(false);

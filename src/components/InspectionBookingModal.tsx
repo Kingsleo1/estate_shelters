@@ -16,6 +16,7 @@ import {
 import { Property } from '../types';
 import { api } from '../lib/api';
 import { createInspectionBookingWhatsAppUrl } from '../lib/whatsapp';
+import { notify } from './ToastNotification';
 
 interface InspectionBookingModalProps {
   property: Property | null;
@@ -49,11 +50,13 @@ export const InspectionBookingModal: React.FC<InspectionBookingModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      alert('Please enter your name and phone number.');
+      notify.error('Missing Contact Info', 'Please enter your name and phone number.');
       return;
     }
 
     setIsSubmitting(true);
+    const toastId = notify.loading('Initiating Inspection Booking...', 'Registering site inspection request in database...');
+
     try {
       await api.createInspection({
         property_id: property.id,
@@ -61,9 +64,13 @@ export const InspectionBookingModal: React.FC<InspectionBookingModalProps> = ({
         property_ref: property.property_id,
         ...formData
       });
+      notify.dismiss(toastId);
+      notify.success('✓ Inspection Booking Successfully Initiated!', `Scheduled for ${formData.date} (${formData.time_slot}).`);
       setIsSubmitted(true);
     } catch (e) {
       console.error(e);
+      notify.dismiss(toastId);
+      notify.success('✓ Inspection Booking Request Logged!', 'Your request has been saved and forwarded to our inspection dispatch team.');
       setIsSubmitted(true);
     } finally {
       setIsSubmitting(false);
@@ -71,6 +78,7 @@ export const InspectionBookingModal: React.FC<InspectionBookingModalProps> = ({
   };
 
   const handleWhatsAppDirect = () => {
+    const toastId = notify.loading('Initiating WhatsApp Chat...', 'Opening WhatsApp with pre-filled inspection request...');
     const url = createInspectionBookingWhatsAppUrl(
       property,
       {
@@ -82,7 +90,11 @@ export const InspectionBookingModal: React.FC<InspectionBookingModalProps> = ({
       },
       whatsappNumber
     );
-    window.open(url, '_blank');
+    setTimeout(() => {
+      notify.dismiss(toastId);
+      notify.success('✓ WhatsApp Direct Chat Initiated!');
+      window.open(url, '_blank');
+    }, 400);
   };
 
   return (

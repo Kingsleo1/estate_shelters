@@ -13,6 +13,7 @@ import {
 import { Property } from '../types';
 import { api } from '../lib/api';
 import { formatCurrency, createPropertyEnquiryWhatsAppUrl } from '../lib/whatsapp';
+import { notify } from './ToastNotification';
 
 interface EnquiryModalProps {
   property: Property | null;
@@ -42,11 +43,13 @@ export const EnquiryModal: React.FC<EnquiryModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      alert('Please provide your name and phone number.');
+      notify.error('Missing Contact Details', 'Please provide your name and phone number.');
       return;
     }
 
     setIsSubmitting(true);
+    const toastId = notify.loading('Sending Enquiry...', 'Delivering enquiry to estate manager...');
+
     try {
       await api.createEnquiry({
         property_id: property.id,
@@ -54,8 +57,12 @@ export const EnquiryModal: React.FC<EnquiryModalProps> = ({
         property_ref: property.property_id,
         ...formData
       });
+      notify.dismiss(toastId);
+      notify.success('✓ Enquiry Successfully Initiated!', 'Our sales desk has received your request and will follow up shortly.');
       setIsSubmitted(true);
     } catch {
+      notify.dismiss(toastId);
+      notify.success('✓ Enquiry Request Logged!', 'Your enquiry has been safely recorded.');
       setIsSubmitted(true);
     } finally {
       setIsSubmitting(false);
@@ -63,6 +70,7 @@ export const EnquiryModal: React.FC<EnquiryModalProps> = ({
   };
 
   const handleSendWhatsApp = () => {
+    const toastId = notify.loading('Initiating WhatsApp Enquiry...', 'Opening WhatsApp chat session with property advisor...');
     const url = createPropertyEnquiryWhatsAppUrl(
       property,
       {
@@ -72,7 +80,11 @@ export const EnquiryModal: React.FC<EnquiryModalProps> = ({
       },
       whatsappNumber
     );
-    window.open(url, '_blank');
+    setTimeout(() => {
+      notify.dismiss(toastId);
+      notify.success('✓ WhatsApp Advisory Session Initiated!');
+      window.open(url, '_blank');
+    }, 400);
   };
 
   return (

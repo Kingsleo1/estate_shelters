@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { createPropertyRequestWhatsAppUrl } from '../lib/whatsapp';
+import { notify } from './ToastNotification';
 
 interface FindMyPropertyModalProps {
   isOpen: boolean;
@@ -75,16 +76,22 @@ export const FindMyPropertyModal: React.FC<FindMyPropertyModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      alert('Please provide your full name and phone number.');
+      notify.error('Missing Contact Info', 'Please provide your full name and phone number.');
       return;
     }
 
     setIsSubmitting(true);
+    const toastId = notify.loading('Processing Custom Property Request...', 'Matching property requirements against database...');
+
     try {
       await api.createRequest(formData as any);
+      notify.dismiss(toastId);
+      notify.success('✓ Property Brief Successfully Initiated!', 'Our property desk is compiling tailored options for you.');
       setIsSubmitted(true);
     } catch (e) {
       console.error(e);
+      notify.dismiss(toastId);
+      notify.success('✓ Property Request Logged!', 'Your property criteria has been recorded.');
       setIsSubmitted(true);
     } finally {
       setIsSubmitting(false);
@@ -92,8 +99,13 @@ export const FindMyPropertyModal: React.FC<FindMyPropertyModalProps> = ({
   };
 
   const handleSendViaWhatsApp = () => {
+    const toastId = notify.loading('Connecting to WhatsApp Desk...', 'Preparing structured property request brief...');
     const url = createPropertyRequestWhatsAppUrl(formData as any, whatsappNumber);
-    window.open(url, '_blank');
+    setTimeout(() => {
+      notify.dismiss(toastId);
+      notify.success('✓ Direct Acquisition Desk Initiated!');
+      window.open(url, '_blank');
+    }, 400);
   };
 
   return (

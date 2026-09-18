@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Property } from '../types';
 import { formatCurrency, createPropertyEnquiryWhatsAppUrl } from '../lib/whatsapp';
+import { notify } from './ToastNotification';
 
 interface PropertyCardProps {
   property: Property;
@@ -57,12 +58,17 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
 
   const handleWhatsAppClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const toastId = notify.loading('Initiating WhatsApp Chat...', `Connecting for ${property.title}...`);
     const url = createPropertyEnquiryWhatsAppUrl(
       property,
       { name: 'Website Visitor', phone: '' },
       whatsappNumber
     );
-    window.open(url, '_blank');
+    setTimeout(() => {
+      notify.dismiss(toastId);
+      notify.success('✓ WhatsApp Direct Chat Session Initiated!');
+      window.open(url, '_blank');
+    }, 350);
   };
 
   return (
@@ -128,6 +134,10 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleCompare(property);
+                notify.success(
+                  isCompared ? 'Removed from Comparison' : '✓ Added to Comparison List',
+                  `${property.title} updated in property comparison drawer.`
+                );
               }}
               className={`w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all ${
                 isCompared
@@ -145,6 +155,10 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite(property.id);
+                notify.success(
+                  isFavorite ? 'Removed from Favorites' : '✓ Saved to Favorites',
+                  `${property.title} saved to your personal collection.`
+                );
               }}
               className={`w-8 h-8 rounded-full backdrop-blur-md flex items-center justify-center transition-all ${
                 isFavorite

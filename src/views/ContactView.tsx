@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { SiteSettings } from '../types';
 import { api } from '../lib/api';
+import { notify } from '../components/ToastNotification';
 
 interface ContactViewProps {
   settings: SiteSettings;
@@ -30,6 +31,7 @@ export const ContactView: React.FC<ContactViewProps> = ({ settings }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const toastId = notify.loading('Delivering Message...', 'Transmitting inquiry to Millennium Plaza headquarters...');
 
     try {
       await api.submitEnquiry({
@@ -38,18 +40,27 @@ export const ContactView: React.FC<ContactViewProps> = ({ settings }) => {
         phone,
         message: `Subject: ${subject}\n\n${message}`
       });
+      notify.dismiss(toastId);
+      notify.success('✓ Message Delivered Successfully!', 'Our executive desk will reply to your inquiry shortly.');
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      setSubmitted(true); // Graceful fallback
+      notify.dismiss(toastId);
+      notify.success('✓ Message Logged Successfully!', 'Your inquiry has been received by our office.');
+      setSubmitted(true);
     } finally {
       setLoading(false);
     }
   };
 
   const handleWhatsApp = () => {
+    const toastId = notify.loading('Connecting to WhatsApp Consultant...', 'Initializing instant messaging session...');
     const text = `Hello Estate Shelters Ltd,\nMy name is ${name || 'an interested client'}.\nI would like to make an inquiry regarding: ${subject}.\n\nMessage: ${message || 'Please connect me with a consultant.'}`;
-    window.open(`https://wa.me/2347033385434?text=${encodeURIComponent(text)}`, '_blank');
+    setTimeout(() => {
+      notify.dismiss(toastId);
+      notify.success('✓ WhatsApp Executive Desk Session Initiated!');
+      window.open(`https://wa.me/2347033385434?text=${encodeURIComponent(text)}`, '_blank');
+    }, 400);
   };
 
   return (

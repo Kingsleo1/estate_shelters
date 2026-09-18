@@ -21,6 +21,7 @@ import { EnquiryModal } from './components/EnquiryModal';
 import { GeminiChatAssistant } from './components/GeminiChatAssistant';
 import { FloatingWhatsApp } from './components/FloatingWhatsApp';
 import { BackgroundDecorations } from './components/BackgroundDecorations';
+import { ToastNotificationContainer } from './components/ToastNotification';
 
 import { Property, LocationItem, BlogPost, SiteSettings } from './types';
 import { INITIAL_PROPERTIES, INITIAL_LOCATIONS, INITIAL_BLOG_POSTS, DEFAULT_SETTINGS } from './data/seedData';
@@ -481,6 +482,9 @@ export default function App() {
         onClose={() => setEnquiryProperty(null)}
         whatsappNumber={settings.whatsapp_number}
       />
+
+      {/* Global Action Loading Effect & Success Toast Container */}
+      <ToastNotificationContainer />
 
     </div>
   );

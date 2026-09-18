@@ -11,6 +11,7 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { TransactionType, PropertyType } from '../types';
+import { notify } from './ToastNotification';
 
 export interface SearchFilters {
   transaction: string;
@@ -77,16 +78,22 @@ export const AdvancedSearchBar: React.FC<AdvancedSearchBarProps> = ({
 
   const handleSearchSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    onSearch({
-      transaction,
-      type: type === 'All Types' ? 'All' : type,
-      district: district === 'All Districts' ? 'All' : district.split(' ')[0],
-      minPrice,
-      maxPrice,
-      bedrooms,
-      currency,
-      keyword
-    });
+    const toastId = notify.loading('Applying Search Parameters...', 'Filtering Abuja real estate catalog...');
+
+    setTimeout(() => {
+      onSearch({
+        transaction,
+        type: type === 'All Types' ? 'All' : type,
+        district: district === 'All Districts' ? 'All' : district.split(' ')[0],
+        minPrice,
+        maxPrice,
+        bedrooms,
+        currency,
+        keyword
+      });
+      notify.dismiss(toastId);
+      notify.success('✓ Search Filters Applied!', `Filtering listings by ${transaction} - ${district === 'All Districts' ? 'All Districts' : district}`);
+    }, 300);
   };
 
   const handleReset = () => {

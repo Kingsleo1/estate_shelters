@@ -36,6 +36,7 @@ import { Property, SiteSettings, PropertyOption, PropertyType, TransactionType, 
 import { api } from '../lib/api';
 import { formatCurrency } from '../lib/whatsapp';
 import { PropertyImageUploader } from '../components/PropertyImageUploader';
+import { notify } from '../components/ToastNotification';
 
 const PRESET_FEATURES = [
   '24/7 Security Patrol & Gatehouse',
@@ -438,27 +439,43 @@ export const AdminView: React.FC<AdminViewProps> = ({
       published: true
     };
 
+    const toastId = notify.loading(
+      editingProperty ? 'Saving Property Updates...' : 'Publishing Property Listing...',
+      'Persisting records to local database and Astra DB store...'
+    );
+
     try {
       if (editingProperty) {
         await api.updateProperty(editingProperty.id, propertyPayload);
       } else {
         await api.createProperty(propertyPayload);
       }
+      notify.dismiss(toastId);
+      notify.success(
+        editingProperty ? '✓ Property Listing Successfully Updated!' : '✓ New Property Listing Successfully Published!',
+        `${formTitle} is now live and synchronized across database stores.`
+      );
       setIsModalOpen(false);
       onRefreshProperties();
     } catch (err) {
       console.error('Failed to save property:', err);
-      alert('Error saving property to database.');
+      notify.dismiss(toastId);
+      notify.error('Database Operation Failed', 'Could not save property record. Please try again.');
     }
   };
 
   const handleDeleteProperty = async (id: string) => {
     if (confirm('Are you sure you want to delete this property listing?')) {
+      const toastId = notify.loading('Deleting Property Listing...', 'Removing record from database...');
       try {
         await api.deleteProperty(id);
+        notify.dismiss(toastId);
+        notify.success('✓ Property Removed', 'The property listing has been deleted from the database.');
         onRefreshProperties();
       } catch (err) {
         console.error(err);
+        notify.dismiss(toastId);
+        notify.error('Delete Failed', 'Could not delete property listing.');
       }
     }
   };
@@ -491,17 +508,28 @@ export const AdminView: React.FC<AdminViewProps> = ({
     if (!cqlContent) return;
     navigator.clipboard.writeText(cqlContent);
     setCqlCopied(true);
+    notify.success('✓ CQL Schema Copied!', 'Astra DB CQL initialization script copied to clipboard.');
     setTimeout(() => setCqlCopied(false), 3000);
   };
 
   const handleTestAstraConnection = async () => {
     setIsTestingAstra(true);
     setAstraTestResult(null);
+    const toastId = notify.loading('Testing Database Connection...', 'Pinging DataStax Astra DB cluster...');
+
     try {
       const res = await fetch('/api/astra/test-connection', { method: 'POST' });
       const data = await res.json();
       setAstraTestResult(data);
+      notify.dismiss(toastId);
+      if (data.connected) {
+        notify.success('✓ Database Connection Verified!', data.statusMessage || 'Connected to Astra DB');
+      } else {
+        notify.error('Database Connection Error', data.statusMessage || 'Could not reach Astra DB');
+      }
     } catch (e: any) {
+      notify.dismiss(toastId);
+      notify.error('Network Error', e?.message || 'Error pinging database server');
       setAstraTestResult({ connected: false, statusMessage: e?.message || 'Network error testing Astra DB' });
     } finally {
       setIsTestingAstra(false);
@@ -511,16 +539,21 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const handleSyncAstraData = async () => {
     setIsSyncingAstra(true);
     setAstraSyncResult(null);
+    const toastId = notify.loading('Syncing Property Records...', 'Writing property listings to database...');
+
     try {
       const res = await fetch('/api/astra/sync-seed', { method: 'POST' });
       const data = await res.json();
       setAstraSyncResult(data);
+      notify.dismiss(toastId);
       if (data.success) {
-        alert(data.message);
+        notify.success('✓ Database Sync Complete!', data.message || 'Records synced successfully.');
       } else {
-        alert(data.error || 'Sync failed');
+        notify.error('Database Sync Error', data.error || 'Sync failed');
       }
     } catch (e: any) {
+      notify.dismiss(toastId);
+      notify.error('Database Sync Error', e?.message || 'Error syncing database records');
       setAstraSyncResult({ success: false, message: e?.message || 'Network error syncing Astra DB' });
     } finally {
       setIsSyncingAstra(false);
@@ -1070,8 +1103,12 @@ export const AdminView: React.FC<AdminViewProps> = ({
 
             <button
               onClick={() => {
+                const toastId = notify.loading('Saving Site Settings...', 'Updating company profile and contact details...');
                 onUpdateSettings(tempSettings);
-                alert('Site settings updated successfully!');
+                setTimeout(() => {
+                  notify.dismiss(toastId);
+                  notify.success('✓ Site Settings Saved!', 'Company credentials and contact information updated.');
+                }, 300);
               }}
               className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition-colors"
             >
